@@ -69,23 +69,13 @@ header p { margin: 0; font-size: 12px; color: var(--muted); letter-spacing: .02e
 .err { grid-column: 1 / -1; margin: 0; background: var(--bg); border-radius: 12px; padding: 8px 12px; font-size: 13px; }
 
 /* OLED preview */
-.oled { grid-column: 1 / -1; background: var(--oled); border: 1px solid var(--line); border-radius: 12px; aspect-ratio: 2 / 1; max-height: 150px; margin-inline: auto; width: 100%; display: grid; place-items: center; position: relative; overflow: hidden; }
-.eyes { display: flex; gap: 16%; direction: ltr; align-items: center; transition: transform .3s; }
-.eye { width: 34px; height: 40px; background: var(--oled-ink); border-radius: 12px; position: relative; overflow: hidden; transition: height .25s, border-radius .25s, transform .25s; animation: blink 5s infinite; }
+.oled { grid-column: 1 / -1; background: var(--oled); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 100%; aspect-ratio: 2 / 1; position: relative; overflow: hidden; }
+[hidden] { display: none !important; }
+.oled .eyes { position: absolute; inset: 0; display: flex; gap: 16%; direction: ltr; align-items: center; justify-content: center; }
+.oled .eye { width: 34px; height: 40px; background: var(--oled-ink); border-radius: 12px; animation: blink 5s infinite; }
 @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.08); } }
-.oled[data-m="happy"] .eye, .oled[data-m="love"] .eye { height: 22px; border-radius: 40px 40px 6px 6px; }
-.oled[data-m="love"] .eye { background: #ff8aa8; }
-.oled[data-m="sleep"] .eye { height: 5px; border-radius: 4px; animation: none; }
-.oled[data-m="sad"] .eye, .oled[data-m="worried"] .eye { height: 28px; border-radius: 6px 6px 18px 18px; }
-.oled[data-m="angry"] .eye { height: 30px; border-radius: 4px; }
-.oled[data-m="angry"] .eye:first-child { transform: skewY(14deg); animation: none; }
-.oled[data-m="angry"] .eye:last-child { transform: skewY(-14deg); animation: none; }
-.oled[data-m="surprise"] .eye { width: 40px; height: 48px; border-radius: 50%; }
-.oled[data-m="shy"] .eye, .oled[data-m="flirt"] .eye { height: 14px; border-radius: 30px; }
-.oled[data-m="skeptical"] .eye:first-child { height: 20px; }
-.oled[data-m="think"] .eyes { transform: translate(14px, -8px); }
-.oled[data-m="dizzy"] .eyes { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .oled .eye { animation: none; } }
+.oled canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 .oled .cap { position: absolute; bottom: 6px; inset-inline: 0; text-align: center; font-size: 11px; color: var(--muted); }
 
 /* chat */
@@ -116,16 +106,9 @@ details summary { cursor: pointer; }
 .raw { margin: 8px 0 0; padding: 0; list-style: none; direction: ltr; font-family: ui-monospace, Menlo, monospace; display: flex; flex-direction: column; gap: 2px; }
 .raw li.out { color: var(--accent); }
 
-.sim { display: flex; flex-direction: column; gap: 10px; }
-.sim p { margin: 0; font-size: 13px; color: var(--muted); }
-.sim .row { display: flex; gap: 8px; }
-.sim input { flex: 1; min-width: 0; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); direction: ltr; text-align: left; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
-.sim .btn { min-height: 40px; padding: 0 14px; font-size: 13px; }
-.sim label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg); }
 .help { font-size: 13px; color: var(--muted); }
 .help p { margin: 0 0 6px; color: var(--fg); font-weight: 600; }
 .help ol { margin: 0; padding-inline-start: 20px; }
-@media (prefers-reduced-motion: reduce) { .eye, .oled[data-m="dizzy"] .eyes { animation: none; } }
 </style>
 </head>
 <body>
@@ -138,10 +121,6 @@ details summary { cursor: pointer; }
     <button id="connectBtn" class="btn primary" type="button">اتصال</button>
   </header>
 
-  <div class="seg" role="group" aria-label="نوع اتصال">
-    <button id="modeSim" type="button" aria-pressed="true">شبیه‌ساز</button>
-    <button id="modeBle" type="button" aria-pressed="false">ربات واقعی (BLE)</button>
-  </div>
 
   <section class="card status" aria-live="polite">
     <div>
@@ -150,9 +129,10 @@ details summary { cursor: pointer; }
       <p class="dev" id="devName" dir="ltr">Lamda_AI_Robot</p>
     </div>
     <div class="temp" id="tempBox">— °</div>
-    <div class="oled" id="oled" data-m="normal" aria-hidden="true">
-      <div class="eyes"><span class="eye"></span><span class="eye"></span></div>
-      <span class="cap" id="oledCap">OLED 128×64</span>
+    <div class="oled" id="oled" aria-hidden="true">
+      <canvas id="face" width="128" height="64" hidden></canvas>
+      <div class="eyes" id="eyes"><span class="eye"></span><span class="eye"></span></div>
+      <span class="cap" id="oledCap">چشم‌ها بعد از اتصال زنده میشن</span>
     </div>
     <p class="err" id="err" role="alert" hidden></p>
   </section>
@@ -176,28 +156,13 @@ details summary { cursor: pointer; }
     <div class="grid extras" id="extras"></div>
   </section>
 
-  <section class="card sim" id="simPanel">
-    <h3 style="margin:0">پنل شبیه‌ساز</h3>
-    <p>این‌جا خطی را مثل ربات واقعی برای اپ می‌فرستی. اپ همان تحلیل‌گر خط BLE را اجرا می‌کند.</p>
-    <div class="row">
-      <input id="injectIn" value="REPLY:سلام، من لمدا هستم" aria-label="خط ورودی از ربات">
-      <button class="btn" id="injectBtn" type="button">بفرست</button>
-    </div>
-    <div class="row" style="flex-wrap:wrap">
-      <button class="btn" type="button" data-inj="TEMP:29.4">TEMP</button>
-      <button class="btn" type="button" data-inj="STATE:خوشحال">STATE</button>
-      <button class="btn" type="button" data-inj="REPLY:این یک جواب خیلی خیلی طولانی است تا برش ۲۰ بایتی بسته‌های BLE را امتحان کنیم.">جواب بلند</button>
-      <button class="btn" type="button" id="dropBtn">قطع ناگهانی</button>
-    </div>
-    <label><input type="checkbox" id="silentChk"> ربات بعد از پیام اول ساکت شود (تست باگ قبلی)</label>
-  </section>
 
-  <section class="card help" id="bleHelp" hidden>
+  <section class="card help" id="bleHelp">
     <p>قبل از اتصال واقعی</p>
     <ol>
       <li>ربات روی حالت Bluetooth باشد و نام Lamda_AI_Robot را پخش کند.</li>
       <li>از تنظیمات گوشی جفتش نکن.</li>
-      <li>این صفحه باید در خودِ Chrome اندروید و با https باز شود (مثلا GitHub Pages) یا فایل را مستقیم در Chrome باز کنی.</li>
+      <li>صفحه را در خودِ Chrome اندروید باز کن.</li>
     </ol>
     <p id="bleNote" style="margin-top:8px;font-weight:400"></p>
   </section>
@@ -214,6 +179,7 @@ details summary { cursor: pointer; }
   var NUS_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   var NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
   var NUS_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+  var NUS_FACE = "6e400004-b5a3-f393-e0a9-e50e24dcca9e";
   var CHUNK = 20;
 
   var FACES = [
@@ -225,11 +191,9 @@ details summary { cursor: pointer; }
   var EXTRAS = [["play", "بازی", "state:play"], ["sing", "آواز", "state:sing"], ["dance", "برقص", "state:dance"], ["who", "کی هستی", "who"]];
   // label (as robot sends in STATE:) -> command
   var MOOD_CMD = { "عادی": "normal", "خوشحال": "happy", "عاشقونه": "love", "عصبانی": "angry", "خواب": "sleep", "فکر": "think", "ناز": "flirt", "تعجب": "surprise", "خجالت": "shy", "بازی": "play", "ناراحت": "sad", "نگران": "worried", "شکاک": "skeptical", "گیج": "dizzy", "آواز": "sing", "رقص": "dance" };
-  // command -> label the simulated robot reports
-  var CMD_LABEL = { normal: "عادی", happy: "خوشحال", love: "عاشقونه", angry: "عصبانی", sleep: "خواب", think: "فکر", flirt: "ناز", surprise: "تعجب", shy: "خجالت", play: "بازی", sad: "ناراحت", worried: "نگران", skeptical: "شکاک", dizzy: "گیج", sing: "آواز", dance: "رقص" };
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { mode: "sim", phase: "idle", link: null, active: null, dropping: false, bid: 1 };
+  var state = { phase: "idle", link: null, active: null, dropping: false, bid: 1 };
 
   /* ---------- parsing (same logic as the Grok build) ---------- */
   function takeLines(buffer, onLine) {
@@ -257,6 +221,55 @@ details summary { cursor: pointer; }
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
+  /* ---------- live face (SSD1306 128x64 framebuffer over BLE) ---------- */
+  var faceCtx = null, faceImg = null, faceFrame = null, faceSeen = false;
+  function decodeFace(mode, bytes) {
+    var buf = new Uint8Array(1024);
+    if (mode === 1) { buf.set(bytes.subarray(0, 1024)); return buf; }
+    var o = 0;
+    for (var i = 0; i + 1 < bytes.length && o < 1024; i += 2) {
+      var n = bytes[i], v = bytes[i + 1];
+      for (var k = 0; k < n && o < 1024; k++) buf[o++] = v;
+    }
+    return buf;
+  }
+  function drawFace(buf) {
+    var cv = $("face");
+    if (!faceCtx) { faceCtx = cv.getContext("2d"); faceImg = faceCtx.createImageData(128, 64); }
+    var d = faceImg.data;
+    for (var page = 0; page < 8; page++) {
+      for (var x = 0; x < 128; x++) {
+        var byte = buf[page * 128 + x];
+        for (var b = 0; b < 8; b++) {
+          var i = ((page * 8 + b) * 128 + x) * 4;
+          var on = (byte >> b) & 1;
+          d[i] = on ? 159 : 5; d[i + 1] = on ? 232 : 7; d[i + 2] = on ? 255 : 10; d[i + 3] = 255;
+        }
+      }
+    }
+    faceCtx.putImageData(faceImg, 0, 0);
+    if (!faceSeen) { faceSeen = true; cv.hidden = false; $("eyes").hidden = true; $("oledCap").hidden = true; }
+  }
+  function onFaceChunk(u8) {
+    if (u8.length < 5) return;
+    var id = u8[0], idx = u8[1], count = u8[2], mode = u8[3];
+    if (!faceFrame || faceFrame.id !== id) faceFrame = { id: id, count: count, mode: mode, parts: [], got: 0 };
+    if (!faceFrame.parts[idx]) { faceFrame.parts[idx] = u8.slice(4); faceFrame.got++; }
+    if (faceFrame.got === faceFrame.count) {
+      var total = 0, i;
+      for (i = 0; i < count; i++) total += faceFrame.parts[i].length;
+      var all = new Uint8Array(total), off = 0;
+      for (i = 0; i < count; i++) { all.set(faceFrame.parts[i], off); off += faceFrame.parts[i].length; }
+      var m = faceFrame.mode; faceFrame = null;
+      drawFace(decodeFace(m, all));
+    }
+  }
+  function resetFaceView() {
+    faceSeen = false; faceFrame = null;
+    $("face").hidden = true; $("eyes").hidden = false; $("oledCap").hidden = false;
+  }
+
+
   /* ---------- UI helpers ---------- */
   function showError(msg) { var e = $("err"); e.hidden = !msg; e.textContent = msg || ""; }
   function addRaw(text, out) {
@@ -278,7 +291,6 @@ details summary { cursor: pointer; }
     $("moodText").textContent = label || "نامعلوم";
     if (cmd) {
       state.active = cmd; markActive();
-      $("oled").setAttribute("data-m", cmd);
     }
   }
   function markActive() {
@@ -296,6 +308,7 @@ details summary { cursor: pointer; }
     b.textContent = on ? "قطع" : (state.phase === "connecting" ? "در حال اتصال" : "اتصال");
     b.className = "btn" + (on ? "" : " primary");
     $("sendBtn").disabled = !on || !$("draft").value.trim();
+    $("bleHelp").hidden = on;
     $("devName").textContent = on && state.link ? state.link.deviceName : "Lamda_AI_Robot";
   }
 
@@ -338,6 +351,8 @@ details summary { cursor: pointer; }
       var service = await gatt.getPrimaryService(NUS_SERVICE);
       var rx = await service.getCharacteristic(NUS_RX);
       var tx = await service.getCharacteristic(NUS_TX);
+      var faceChar = null;
+      try { faceChar = await service.getCharacteristic(NUS_FACE); } catch (e) { faceChar = null; } // کد ربات قدیمی بود: چهره‌ی زنده نیست
       var feed = makeAssembler(onLine);
       var onNotify = function () {
         var v = tx.value; if (!v) return;
@@ -345,6 +360,14 @@ details summary { cursor: pointer; }
       };
       tx.addEventListener("characteristicvaluechanged", onNotify);
       await tx.startNotifications();
+      var onFace = function () {
+        var v = faceChar.value; if (!v) return;
+        onFaceChunk(new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)));
+      };
+      if (faceChar) {
+        faceChar.addEventListener("characteristicvaluechanged", onFace);
+        await faceChar.startNotifications();
+      }
       var onGone = function () { handleDisconnect(); };
       device.addEventListener("gattserverdisconnected", onGone);
       var queue = Promise.resolve();
@@ -358,6 +381,7 @@ details summary { cursor: pointer; }
         }
       };
       return {
+        hasFace: !!faceChar,
         deviceName: device.name || "Lamda_AI_Robot",
         writeLine: function (line) {
           var job = queue.then(function () { return write(line); });
@@ -368,6 +392,7 @@ details summary { cursor: pointer; }
           tx.removeEventListener("characteristicvaluechanged", onNotify);
           device.removeEventListener("gattserverdisconnected", onGone);
           try { tx.stopNotifications(); } catch (e) {}
+          if (faceChar) { faceChar.removeEventListener("characteristicvaluechanged", onFace); try { faceChar.stopNotifications(); } catch (e) {} }
           if (gatt.connected) gatt.disconnect();
         }
       };
@@ -377,78 +402,20 @@ details summary { cursor: pointer; }
     }
   }
 
-  /* ---------- simulated robot ---------- */
-  var sim = { msgCount: 0, feed: null };
-  var CANNED = [
-    "سلام امیرعباس، من لمدا هستم. چه خبر؟",
-    "جالبه! بیشتر بگو.",
-    "من یک ربات کوچولو هستم ولی خیلی دوستت دارم.",
-    "الان حالم خوبه. دمای محیط هم مناسبه."
-  ];
-  function simNotify(text) {
-    // robot side: encode and push in 20-byte notifications, like BLE would
-    var bytes = new TextEncoder().encode(text + "\n");
-    for (var i = 0; i < bytes.length; i += CHUNK) {
-      (function (part, delay) { setTimeout(function () { if (state.link) sim.feed(part); }, delay); })(bytes.slice(i, i + CHUNK), (i / CHUNK) * 25);
-    }
-  }
-  function simRobotHandle(raw) {
-    var line = raw.replace(/\s+$/, "");
-    if (line === "temp") { setTimeout(function () { simNotify("TEMP:" + (28 + Math.random() * 2).toFixed(1)); }, 150); return; }
-    if (line === "who") { setTimeout(function () { simNotify("REPLY:من لمدا هستم، ربات همراه امیرعباس."); }, 300); return; }
-    if (line.indexOf("state:") === 0) {
-      var cmd = line.slice(6);
-      var label = CMD_LABEL[cmd] || cmd;
-      setTimeout(function () { simNotify("STATE:" + label); }, 200);
-      return;
-    }
-    var text = line.indexOf("chat:") === 0 ? line.slice(5) : line;
-    sim.msgCount++;
-    if ($("silentChk").checked && sim.msgCount > 1) return; // simulates the old "second message gets no reply" bug
-    setTimeout(function () { simNotify("REPLY:" + CANNED[(sim.msgCount - 1) % CANNED.length]); }, 900);
-  }
-  function connectSim() {
-    return new Promise(function (resolve) {
-      sim.msgCount = 0;
-      sim.feed = makeAssembler(onLine);
-      // robot receives lines assembled from 20-byte chunks, like the firmware's readStringUntil('\n')
-      var rxBuf = new Uint8Array(0);
-      var dec = new TextDecoder("utf-8");
-      setTimeout(function () {
-        resolve({
-          deviceName: "Lamda_AI_Robot (شبیه‌ساز)",
-          writeLine: async function (line) {
-            var bytes = new TextEncoder().encode(line.slice(-1) === "\n" ? line : line + "\n");
-            for (var i = 0; i < bytes.length; i += CHUNK) {
-              var part = bytes.slice(i, Math.min(i + CHUNK, bytes.length));
-              var merged = new Uint8Array(rxBuf.length + part.length);
-              merged.set(rxBuf, 0); merged.set(part, rxBuf.length);
-              rxBuf = merged;
-              var nl;
-              while ((nl = rxBuf.indexOf(0x0a)) >= 0) {
-                var text = dec.decode(rxBuf.subarray(0, nl));
-                rxBuf = rxBuf.slice(nl + 1);
-                simRobotHandle(text);
-              }
-              if (i + CHUNK < bytes.length) await sleep(30);
-            }
-          },
-          disconnect: function () {}
-        });
-      }, 700);
-    });
-  }
-
   /* ---------- connect / send ---------- */
   function handleDisconnect() {
-    state.link = null; state.phase = "idle"; renderPhase();
+    state.link = null; state.phase = "idle"; renderPhase(); resetFaceView();
+    $("oledCap").textContent = "چشم‌ها بعد از اتصال زنده میشن";
     if (!state.dropping) showError("اتصال با لمدا قطع شد.");
   }
   async function connect() {
     showError(""); state.phase = "connecting"; state.dropping = false; renderPhase();
     try {
-      var link = state.mode === "sim" ? await connectSim() : await connectBle();
+      var link = await connectBle();
       state.link = link; state.phase = "connected"; renderPhase();
+      resetFaceView();
+      if (link.hasFace) await send("face:on");
+      else $("oledCap").textContent = "کد ربات چهره‌ی زنده ندارد (نسخه‌ی ۶۷ لازم است)";
       await send("temp");
     } catch (e) {
       state.link = null; state.phase = "idle"; renderPhase();
@@ -457,8 +424,9 @@ details summary { cursor: pointer; }
   }
   function disconnect() {
     state.dropping = true;
-    if (state.link) state.link.disconnect();
+    if (state.link) { try { state.link.writeLine("face:off"); } catch (e) {} state.link.disconnect(); }
     state.link = null; state.phase = "idle"; renderPhase(); showError("");
+    resetFaceView(); $("oledCap").textContent = "چشم‌ها بعد از اتصال زنده میشن";
   }
   async function send(line, echo) {
     if (!state.link || state.phase !== "connected") { showError("اول به لمدا وصل شو. ربات باید روی حالت Bluetooth باشد."); return; }
@@ -476,7 +444,7 @@ details summary { cursor: pointer; }
       var b = document.createElement("button"); b.type = "button"; b.className = "chip";
       b.textContent = f[1]; b.setAttribute("data-cmd", f[0]); b.setAttribute("aria-pressed", "false");
       if (f[0] === "dizzy") b.className += " span2";
-      b.addEventListener("click", function () { if (state.phase === "connected") { state.active = f[0]; markActive(); $("oled").setAttribute("data-m", f[0]); } send("state:" + f[0]); });
+      b.addEventListener("click", function () { if (state.phase === "connected") { state.active = f[0]; markActive(); } send("state:" + f[0]); });
       faces.appendChild(b);
     });
     var extras = $("extras");
@@ -487,20 +455,7 @@ details summary { cursor: pointer; }
       extras.appendChild(b);
     });
   }
-  function setMode(m) {
-    if (state.phase !== "idle") disconnect();
-    state.mode = m;
-    $("modeSim").setAttribute("aria-pressed", m === "sim" ? "true" : "false");
-    $("modeBle").setAttribute("aria-pressed", m === "ble" ? "true" : "false");
-    $("simPanel").hidden = m !== "sim";
-    $("bleHelp").hidden = m !== "ble";
-    $("bleNote").textContent = navigator.bluetooth ? "" : "این مرورگر Web Bluetooth ندارد، پس اتصال واقعی این‌جا کار نمی‌کند. شبیه‌ساز را استفاده کن.";
-    showError("");
-  }
-
   $("connectBtn").addEventListener("click", function () { if (state.phase === "connected") disconnect(); else connect(); });
-  $("modeSim").addEventListener("click", function () { setMode("sim"); });
-  $("modeBle").addEventListener("click", function () { setMode("ble"); });
   $("draft").addEventListener("input", renderPhase);
   $("form").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -510,16 +465,8 @@ details summary { cursor: pointer; }
     $("draft").value = ""; renderPhase();
     send("chat:" + text, text);
   });
-  function inject(line) {
-    if (state.mode !== "sim" || state.phase !== "connected") { showError("اول در حالت شبیه‌ساز وصل شو."); return; }
-    simNotify(line);
-  }
-  $("injectBtn").addEventListener("click", function () { inject($("injectIn").value); });
-  document.querySelectorAll("[data-inj]").forEach(function (b) { b.addEventListener("click", function () { inject(b.getAttribute("data-inj")); }); });
-  $("dropBtn").addEventListener("click", function () { if (state.mode === "sim" && state.phase === "connected") handleDisconnect(); });
-
   buildButtons();
-  setMode("sim");
+  $("bleNote").textContent = navigator.bluetooth ? "" : "این مرورگر Web Bluetooth ندارد. صفحه را در Chrome یا Edge باز کن.";
   renderPhase();
 })();
 </script>
